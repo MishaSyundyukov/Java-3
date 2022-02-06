@@ -1,0 +1,194 @@
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+
+public class Main {
+
+    public static final int CARS_COUNT = 4;
+    public static final int HALF_CARS_COUNT = CARS_COUNT/2;
+
+    public static void main(String[] args) {
+        System.out.println("ÂÀÆÍÎÅ ÎÁÚßÂËÅÍÈÅ >>> Ïîäãîòîâêà!!!");
+        CyclicBarrier cb = new CyclicBarrier(5);
+        CountDownLatch cdl = new CountDownLatch(CARS_COUNT);
+        Race race = new Race(new Road(60), new Tunnel(), new Road(40));
+        Car[] cars = new Car[CARS_COUNT];
+        for (int i = 0; i < cars.length; i++) {
+            cars[i] = new Car(race, 20 + (int) (Math.random() * 10),cb, cdl);
+        }
+        for (int i = 0; i < cars.length; i++) {
+            new Thread(cars[i]).start();
+        }
+        try {
+            cb.await();
+            System.out.println("ÂÀÆÍÎÅ ÎÁÚßÂËÅÍÈÅ >>> Ãîíêà íà÷àëàñü!!!");
+            cb.await();
+            cb.await();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("ÂÀÆÍÎÅ ÎÁÚßÂËÅÍÈÅ >>> Ãîíêà çàêîí÷èëàñü!!!");
+    }
+}
+
+
+package lesson5;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class Car implements Runnable {
+    private static int CARS_COUNT;
+    private static boolean winnerFound;
+    private static Lock win = new ReentrantLock();
+
+    static {
+        CARS_COUNT = 0;
+    }
+
+    private Race race;
+    private int speed;
+    private String name;
+    private int count;
+    private CyclicBarrier cb;
+    private CountDownLatch cdl;
+
+
+    public String getName() {
+        return name;
+    }
+
+    public int getSpeed() {
+        return speed;
+    }
+
+    public int getCount() {
+        return count;
+    }
+
+    public Car(Race race, int speed, CyclicBarrier cb, CountDownLatch cdl) {
+        this.race = race;
+        this.speed = speed;
+        CARS_COUNT++;
+        this.name = "Ó÷àñòíèê #" + CARS_COUNT;
+        this.cb = cb;
+        this.cdl = cdl;
+    }
+
+    @Override
+    public void run() {
+        try {
+            System.out.println(this.name + " ãîòîâèòñÿ");
+            Thread.sleep(500 + (int) (Math.random() * 800));
+            System.out.println(this.name + " ãîòîâ");
+            cb.await();
+            cb.await();
+            for (int i = 0; i < race.getStages().size(); i++) {
+                race.getStages().get(i).go(this);
+            }
+            checkWinner(this);
+            //1 sposob
+//            synchronized (win) {
+//                cdl.countDown();
+//                if (cdl.getCount() == 1)
+//                    System.out.println(this.name + " - WIN");
+//            }
+            cb.await();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    //2 sposob
+    private static synchronized void checkWinner(Car c) {
+        if (!winnerFound) {
+            System.out.println(c.name + " - WIN");
+            winnerFound = true;
+        }
+    }
+}
+
+
+package lesson5;
+
+public abstract class Stage {
+    protected int length;
+    protected String description;
+
+    public	 String getDescription(){return description;
+    }
+    public abstract	 void go(Car c);
+}
+
+
+package lesson5;
+
+public class Road extends Stage {
+    public Road(int length) {
+        this.length = length;
+        this.description = "Äîðîãà " + length + " ìåòðîâ";
+    }
+    @Override
+    public void go(Car c) {
+        try {
+            System.out.println(c.getName() + " íà÷àë ýòàï: " + description);
+            Thread.sleep(length / c.getSpeed() * 1000);
+            System.out.println(c.getName() + " çàêîí÷èë ýòàï: " + description);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+package lesson5;
+
+import java.util.concurrent.Semaphore;
+import static lesson5.Main.HALF_CARS_COUNT;
+
+public class Tunnel extends Stage {
+    Semaphore smp = new Semaphore(HALF_CARS_COUNT);
+
+    public Tunnel() {
+        this.length = 80;
+        this.description = "Òîííåëü " + length + " ìåòðîâ";
+    }
+
+    @Override
+    public void go(Car c) {
+        try {
+            try {
+                System.out.println(c.getName() + " ãîòîâèòñÿ ê ýòàïó(æäåò): " + description);
+                smp.acquire();
+                System.out.println(c.getName() + " íà÷àë ýòàï: " + description);
+                Thread.sleep(length / c.getSpeed() * 1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                System.out.println(c.getName() + " çàêîí÷èë ýòàï: " + description);
+                smp.release();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+package lesson5;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
+public class Race {
+    private ArrayList<Stage> stages;
+
+    public ArrayList<Stage> getStages() {
+        return stages;
+    }
+
+    public Race(Stage... stages) {
+        this.stages = new ArrayList<>(Arrays.asList(stages));
+    }
+}
