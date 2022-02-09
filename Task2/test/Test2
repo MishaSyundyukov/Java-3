@@ -2,13 +2,13 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import task.Task1;
+import task.Task2;
 
 import java.util.Arrays;
 import java.util.Collection;
 
 @RunWith(Parameterized.class)
-public class Task1Test {
+public class Task2Test {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
@@ -20,15 +20,15 @@ public class Task1Test {
     private int[] in;
     private int[] out;
 
-    public Task1Test(int[] in, int[] out) {
+    public Task2Test(int[] in, int[] out) {
         this.in = in;
         this.out = out;
     }
 
-    private Task1 task1;
+    private Task2 task2;
 
     public void startTest() {
-        task1 = new Task1();
+        task2 = new Task2();
     }
 
     @Test
