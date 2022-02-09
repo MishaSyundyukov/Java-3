@@ -1,11 +1,11 @@
 import org.junit.Test;
-import task.Task1;
+import task.Task2;
 
 class Task1ExTest {
-    private Task1 task1;
+    private Task2 task2;
 
     public void startTest() {
-        task1 = new Task1();
+        task2 = new Task2();
     }
 
     @Test(expected = RuntimeException.class)
